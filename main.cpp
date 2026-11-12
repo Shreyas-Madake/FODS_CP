@@ -7,7 +7,7 @@
 #include <string>
 
 /**
- * RouteX — Interactive Graph-Based Route Planner
+ * RouteX - Interactive Graph-Based Route Planner
  * FODS Final Semester Project
  *
  * Entry point for the application. Initializes data structures,

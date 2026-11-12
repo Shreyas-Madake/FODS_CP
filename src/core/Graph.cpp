@@ -43,14 +43,14 @@ bool Graph::hasNode(int id) const {
 int Graph::getInternalIndex(int nodeId) const {
     auto it = m_idToIndex.find(nodeId);
     if (it == m_idToIndex.end()) {
-        throw std::out_of_range("Graph::getInternalIndex — Node ID " + std::to_string(nodeId) + " not found.");
+        throw std::out_of_range("Graph::getInternalIndex - Node ID " + std::to_string(nodeId) + " not found.");
     }
     return it->second;
 }
 
 int Graph::getNodeIdFromIndex(int index) const {
     if (index < 0 || static_cast<size_t>(index) >= m_nodes.size()) {
-        throw std::out_of_range("Graph::getNodeIdFromIndex — Index out of bounds.");
+        throw std::out_of_range("Graph::getNodeIdFromIndex - Index out of bounds.");
     }
     return m_nodes[index].id;
 }

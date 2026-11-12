@@ -35,8 +35,8 @@ private:
     float m_panelWidth = 320.0f;
     float m_windowHeight = 800.0f;
 
-    std::string m_sourceName = "—";
-    std::string m_destName = "—";
+    std::string m_sourceName = "-";
+    std::string m_destName = "-";
     PathResult m_currentResult;
     std::array<PathResult, 3> m_comparisonResults;
     int m_activeAlgorithm = 0;

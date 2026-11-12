@@ -23,7 +23,7 @@ Visualizer::Visualizer(const core::Graph& graph, const std::string& fontPath)
     float panelW = Theme::PanelWidth;
 
     m_window.create(sf::VideoMode(static_cast<unsigned int>(winW), static_cast<unsigned int>(winH)),
-                    "RouteX — Interactive Graph-Based Route Planner & Shortest Path Visualizer");
+                    "RouteX - Interactive Graph-Based Route Planner & Shortest Path Visualizer");
     m_window.setFramerateLimit(60);
 
     // Graph view covers the left area (width = winW - panelW)
@@ -52,22 +52,27 @@ void Visualizer::autoFitView() {
         maxY = std::max(maxY, node.y);
     }
 
-    double cx = (minX + maxX) / 2.0;
-    double cy = (minY + maxY) / 2.0;
-    double sizeX = (maxX - minX) * 1.3; // padding
-    double sizeY = (maxY - minY) * 1.3;
-
     float graphAreaW = Theme::WindowWidth - Theme::PanelWidth;
     float graphAreaH = Theme::WindowHeight;
+    const float graphAspect = graphAreaW / graphAreaH;
+
+    double cx = (minX + maxX) / 2.0;
+    double cy = (minY + maxY) / 2.0;
+    double sizeX = std::max(maxX - minX, 1e-6) * 1.20;
+    double sizeY = std::max(maxY - minY, 1e-6) * 1.20;
+
+    // Preserve the graph area's aspect ratio while fitting the complete map.
+    if (sizeX / sizeY < graphAspect) {
+        sizeX = sizeY * graphAspect;
+    } else {
+        sizeY = sizeX / graphAspect;
+    }
 
     m_graphView.setCenter(static_cast<float>(cx), static_cast<float>(cy));
+    m_graphView.setSize(static_cast<float>(sizeX), static_cast<float>(sizeY));
 
-    // Scale view to cover bounding box
-    float zoomX = static_cast<float>(sizeX / 15.0); // coordinate scale factor
-    float zoomY = static_cast<float>(sizeY / 10.0);
-    m_zoom = std::max(zoomX, zoomY);
-    if (m_zoom < 0.1f) m_zoom = 1.0f;
-    m_graphView.setSize(graphAreaW * m_zoom, graphAreaH * m_zoom);
+    // World-units per screen pixel; used to keep UI primitives screen-sized.
+    m_zoom = static_cast<float>(sizeX / graphAreaW);
 }
 
 void Visualizer::run() {
@@ -151,7 +156,7 @@ void Visualizer::handleEvents() {
                             m_destId = -1;
                             m_selectionState = 1;
                             m_infoPanel.setSource(m_graph.getNode(m_sourceId).name);
-                            m_infoPanel.setDestination("—");
+                            m_infoPanel.setDestination("-");
                             m_animator.reset();
                             m_hasResult = false;
                         } else if (m_selectionState == 1) {
@@ -288,6 +293,7 @@ void Visualizer::drawEdges() {
                 weightText.setFont(m_font);
                 weightText.setString(std::to_string(edge.weight));
                 weightText.setCharacterSize(10);
+                weightText.setScale(m_zoom, m_zoom);
                 weightText.setFillColor(Theme::kTextMuted);
                 weightText.setPosition(static_cast<float>((uNode.x + vNode.x) / 2.0),
                                        static_cast<float>((uNode.y + vNode.y) / 2.0));
@@ -307,8 +313,10 @@ void Visualizer::drawNodes() {
 
     for (int id : allIds) {
         const auto& node = m_graph.getNode(id);
-        sf::CircleShape circle(Theme::kNodeRadiusDefault);
-        circle.setOrigin(Theme::kNodeRadiusDefault, Theme::kNodeRadiusDefault);
+        const float nodeRadius = Theme::kNodeRadiusDefault * m_zoom;
+        const float hoverRadius = Theme::kNodeRadiusHover * m_zoom;
+        sf::CircleShape circle(nodeRadius);
+        circle.setOrigin(nodeRadius, nodeRadius);
         circle.setPosition(static_cast<float>(node.x), static_cast<float>(node.y));
 
         sf::Color fillColor = Theme::kNodeDefault;
@@ -329,14 +337,14 @@ void Visualizer::drawNodes() {
 
         // Hover effect
         if (id == m_hoveredNode) {
-            sf::CircleShape glow(Theme::kNodeRadiusHover);
-            glow.setOrigin(Theme::kNodeRadiusHover, Theme::kNodeRadiusHover);
+            sf::CircleShape glow(hoverRadius);
+            glow.setOrigin(hoverRadius, hoverRadius);
             glow.setPosition(static_cast<float>(node.x), static_cast<float>(node.y));
             glow.setFillColor(sf::Color(255, 255, 255, 50));
             m_window.draw(glow);
 
-            circle.setRadius(Theme::kNodeRadiusHover);
-            circle.setOrigin(Theme::kNodeRadiusHover, Theme::kNodeRadiusHover);
+            circle.setRadius(hoverRadius);
+            circle.setOrigin(hoverRadius, hoverRadius);
         }
 
         m_window.draw(circle);
@@ -351,7 +359,8 @@ void Visualizer::drawNodes() {
 
             sf::FloatRect bounds = nameText.getLocalBounds();
             nameText.setOrigin(bounds.width / 2.0f, 0.0f);
-            nameText.setPosition(static_cast<float>(node.x), static_cast<float>(node.y) + Theme::kNodeRadiusDefault + 4.0f);
+            nameText.setScale(m_zoom, m_zoom);
+            nameText.setPosition(static_cast<float>(node.x), static_cast<float>(node.y) + nodeRadius + 4.0f * m_zoom);
             m_window.draw(nameText);
         }
     }
@@ -362,8 +371,9 @@ void Visualizer::drawVehicle(const Animator::AnimationState& state) {
     for (size_t i = 0; i < state.trail.size(); ++i) {
         float alpha = static_cast<float>(80 - i * 10);
         if (alpha < 0) alpha = 0;
-        sf::CircleShape trailDot(6.0f);
-        trailDot.setOrigin(6.0f, 6.0f);
+        const float trailRadius = 6.0f * m_zoom;
+        sf::CircleShape trailDot(trailRadius);
+        trailDot.setOrigin(trailRadius, trailRadius);
         trailDot.setPosition(state.trail[i]);
         sf::Color trailColor = Theme::kVehicle;
         trailColor.a = static_cast<sf::Uint8>(alpha);
@@ -372,15 +382,16 @@ void Visualizer::drawVehicle(const Animator::AnimationState& state) {
     }
 
     // Draw Vehicle Glow
-    sf::CircleShape glow(Theme::kVehicleRadius * 1.6f);
-    glow.setOrigin(Theme::kVehicleRadius * 1.6f, Theme::kVehicleRadius * 1.6f);
+    const float vehicleRadius = Theme::kVehicleRadius * m_zoom;
+    sf::CircleShape glow(vehicleRadius * 1.6f);
+    glow.setOrigin(vehicleRadius * 1.6f, vehicleRadius * 1.6f);
     glow.setPosition(state.vehicleX, state.vehicleY);
     glow.setFillColor(Theme::kVehicleGlow);
     m_window.draw(glow);
 
     // Draw Main Vehicle Dot
-    sf::CircleShape vehicle(Theme::kVehicleRadius);
-    vehicle.setOrigin(Theme::kVehicleRadius, Theme::kVehicleRadius);
+    sf::CircleShape vehicle(vehicleRadius);
+    vehicle.setOrigin(vehicleRadius, vehicleRadius);
     vehicle.setPosition(state.vehicleX, state.vehicleY);
     vehicle.setFillColor(Theme::kVehicle);
     m_window.draw(vehicle);
@@ -393,6 +404,7 @@ void Visualizer::drawHintText() {
     hint.setFont(m_font);
     hint.setString("Click a node to set SOURCE");
     hint.setCharacterSize(16);
+    hint.setScale(m_zoom, m_zoom);
     hint.setFillColor(Theme::kTextMuted);
 
     sf::Vector2f center = m_graphView.getCenter();
@@ -480,8 +492,8 @@ void Visualizer::resetSelection() {
     m_sourceId = -1;
     m_destId = -1;
     m_selectionState = 0;
-    m_infoPanel.setSource("—");
-    m_infoPanel.setDestination("—");
+    m_infoPanel.setSource("-");
+    m_infoPanel.setDestination("-");
     m_animator.reset();
     m_hasResult = false;
 }

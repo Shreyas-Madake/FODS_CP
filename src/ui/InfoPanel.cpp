@@ -35,7 +35,7 @@ std::string InfoPanel::weightTypeToString(WeightType type) const {
     switch (type) {
         case WeightType::Distance: return "Distance (km)";
         case WeightType::Time:     return "Travel Time (min)";
-        case WeightType::Cost:     return "Cost (₹)";
+        case WeightType::Cost:     return "Cost (Rs)";
     }
     return "Distance";
 }
@@ -96,9 +96,9 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     if (m_weightType == WeightType::Time) distLabel = "TIME";
     if (m_weightType == WeightType::Cost) distLabel = "COST";
 
-    std::string distVal = m_hasResult ? std::to_string(m_currentResult.totalDistance) + (m_weightType == WeightType::Distance ? " km" : m_weightType == WeightType::Time ? " min" : " ₹") : "—";
+    std::string distVal = m_hasResult ? std::to_string(m_currentResult.totalDistance) + (m_weightType == WeightType::Distance ? " km" : m_weightType == WeightType::Time ? " min" : " Rs") : "-";
     std::string nodesVal = m_hasResult ? std::to_string(m_currentResult.nodesExplored) : std::to_string(m_liveNodesExplored);
-    std::string timeVal = m_hasResult ? std::to_string(m_currentResult.executionTimeMs) + " ms" : "—";
+    std::string timeVal = m_hasResult ? std::to_string(m_currentResult.executionTimeMs) + " ms" : "-";
 
     window.draw(makeText("ACTIVE RESULT (" + (m_hasResult ? m_currentResult.algorithmName : "None") + ")", Theme::FontSizeSmall, Theme::ColorTextMuted, x + 10, innerY));
     innerY += 20.0f;
@@ -118,11 +118,11 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     innerY = y + 8.0f;
     window.draw(makeText("SELECT ALGORITHM", Theme::FontSizeSmall, Theme::ColorTextMuted, x + 10, innerY));
     innerY += 20.0f;
-    window.draw(makeText("[1] Dijkstra" + std::string(m_activeAlgorithm == 0 ? "  ◄ ACTIVE" : ""), Theme::FontSizeBody, m_activeAlgorithm == 0 ? Theme::ColorActive : Theme::ColorTextWhite, x + 10, innerY));
+    window.draw(makeText("[1] Dijkstra" + std::string(m_activeAlgorithm == 0 ? "  * ACTIVE" : ""), Theme::FontSizeBody, m_activeAlgorithm == 0 ? Theme::ColorActive : Theme::ColorTextWhite, x + 10, innerY));
     innerY += 20.0f;
-    window.draw(makeText("[2] A* Search" + std::string(m_activeAlgorithm == 1 ? "  ◄ ACTIVE" : ""), Theme::FontSizeBody, m_activeAlgorithm == 1 ? Theme::ColorActive : Theme::ColorTextWhite, x + 10, innerY));
+    window.draw(makeText("[2] A* Search" + std::string(m_activeAlgorithm == 1 ? "  * ACTIVE" : ""), Theme::FontSizeBody, m_activeAlgorithm == 1 ? Theme::ColorActive : Theme::ColorTextWhite, x + 10, innerY));
     innerY += 20.0f;
-    window.draw(makeText("[3] BFS (Unweighted)" + std::string(m_activeAlgorithm == 2 ? "  ◄ ACTIVE" : ""), Theme::FontSizeBody, m_activeAlgorithm == 2 ? Theme::ColorActive : Theme::ColorTextWhite, x + 10, innerY));
+    window.draw(makeText("[3] BFS (Unweighted)" + std::string(m_activeAlgorithm == 2 ? "  * ACTIVE" : ""), Theme::FontSizeBody, m_activeAlgorithm == 2 ? Theme::ColorActive : Theme::ColorTextWhite, x + 10, innerY));
     y += 110.0f;
 
     // 5. Comparison Table
