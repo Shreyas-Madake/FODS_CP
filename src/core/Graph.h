@@ -1,3 +1,4 @@
+// ===== FILE: src/core/Graph.h =====
 #pragma once
 #include <vector>
 #include <string>
@@ -19,6 +20,8 @@
  *   - getNeighbors  : O(1)
  * Space Complexity  : O(V + E)
  */
+
+namespace core {
 
 struct Edge {
     int target;
@@ -75,11 +78,13 @@ public:
      * @brief Get total node count. Time: O(1).
      */
     int nodeCount() const;
+    int getNodeCount() const { return nodeCount(); }
 
     /**
      * @brief Get total edge count. Time: O(1).
      */
     int edgeCount() const;
+    int getEdgeCount() const { return edgeCount(); }
 
     /**
      * @brief Get all node IDs in the graph. Time: O(V).
@@ -97,3 +102,5 @@ private:
     std::unordered_map<int, int> m_idToIndex;
     int m_edgeCount = 0;
 };
+
+} // namespace core

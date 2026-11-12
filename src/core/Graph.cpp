@@ -55,11 +55,11 @@ int Graph::getNodeIdFromIndex(int index) const {
     return m_nodes[index].id;
 }
 
-int Graph::getNodeCount() const {
+int Graph::nodeCount() const {
     return static_cast<int>(m_nodes.size());
 }
 
-int Graph::getEdgeCount() const {
+int Graph::edgeCount() const {
     return m_edgeCount;
 }
 

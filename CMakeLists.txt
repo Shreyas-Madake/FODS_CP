@@ -12,7 +12,8 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     endif()
 endif()
 
-find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
+# Version number removed to prevent CMake strict-matching errors
+find_package(SFML COMPONENTS graphics window system REQUIRED)
 
 set(SOURCES
     main.cpp
