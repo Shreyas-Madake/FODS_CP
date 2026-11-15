@@ -1,54 +1,59 @@
 # 🗺️ RouteX — Interactive Graph-Based Route Planner & Shortest Path Visualizer
 **Final Semester Project — Fundamentals of Data Structures (FODS)**
 
-RouteX is a professional desktop application built from scratch in C++17 and SFML. It visualizes core graph data structures and pathfinding algorithms (Dijkstra, A*, BFS) over a realistic Indian city network, complete with live step-by-step animation, a moving vehicle simulation, and a side-by-side comparison panel.
+**RouteX** is a professional, feature-rich desktop application built from scratch in **C++17** and **SFML**. It visualizes core graph data structures and pathfinding algorithms over a realistic city network, featuring live animated exploration, a moving vehicle simulation, real-time roadblocks, multi-stop waypoints, metric switching (Distance, Time, Cost), Kruskal's Minimum Spanning Tree, and Greedy Traveling Salesperson (TSP) tours.
 
-## 📸 Screenshots
-*(Add your screenshots here after running the app!)*
-![RouteX Interface](docs/screenshot1.png)
-![Algorithm Comparison](docs/screenshot2.png)
+---
 
-## ✨ Features
-- **Hand-Implemented Data Structures:** No STL shortcuts for core structures (Adjacency List Graph, Binary Min-Heap, Hash Map wrapper, Parent-Pointer Array).
-- **Three Pathfinding Algorithms:** Dijkstra's Algorithm, A* Search (with Euclidean heuristic), and Breadth-First Search (BFS).
-- **Interactive SFML Visualizer:**
-  - Click nodes to select Source (Green) and Destination (Crimson).
-  - Pan (WASD / Middle Mouse) & Zoom (Scroll Wheel).
-  - Hover tooltips and glow effects.
-- **Live Algorithm Animation:**
-  - Nodes flash Yellow when visiting, transition to Green when finalized.
-  - Step-by-step mode (SPACE) for Viva demonstrations.
-  - Glowing red path animation upon completion.
-- **Moving Vehicle Simulation:** A glowing cyan vehicle marker with a fading trail travels along the shortest path.
-- **Side Info Panel:** Real-time stats, active algorithm indicator, and side-by-side comparison table.
-- **Robust Error Handling:** Handles disconnected graphs, missing files, and malformed CSV entries gracefully.
+## 🌟 Key Features & "Wow" Capabilities
+
+1. **Dynamic Roadblocks (`Ctrl + Click`)**
+   - Toggle traffic blockades on any road in real-time. All pathfinding algorithms instantly recalculate and route around the blockage.
+2. **Multi-Stop Waypoints (`Shift + Click`)**
+   - Plan complex trips (`Source -> WP1 -> WP2 -> Destination`) with automatic segment chaining and summed metrics.
+3. **Multi-Metric Weight Switching (`[T]` key)**
+   - Instantly toggle datasets to optimize routes by **Distance (km)**, **Travel Time (min)**, or **Toll Cost (Rs)**.
+4. **Greedy Traveling Salesperson Tour (`[P]` key)**
+   - Compute and render a complete Hamiltonian tour visiting every city on the map starting from the source.
+5. **Kruskal's Minimum Spanning Tree (`[M]` key)**
+   - Reveal the optimal minimum spanning forest across the graph with animated edge generation.
+6. **Hand-Implemented Core Data Structures**
+   - Built without STL algorithm wrappers for fundamental structures (Adjacency List, Binary Min-Heap, Union-Find / Disjoint Set).
+7. **Live Side-by-Side Algorithm Comparison**
+   - Compare Dijkstra, A*, and BFS simultaneously on nodes explored, execution microseconds, and total weight.
+
+---
 
 ## 📚 Core Data Structures & Why Each Was Chosen
-1. **Graph (Adjacency List)**
-   - *Design:* Implemented as `std::vector<std::vector<Edge>>` alongside a vertex list and a hash map (`std::unordered_map<int, int>`) for O(1) ID-to-index lookup.
-   - *Why:* Adjacency lists are space-efficient for sparse graphs (`O(V + E)` space) compared to adjacency matrices (`O(V^2)`), and iterate over outgoing neighbors in `O(degree(v))` time.
-2. **Binary Min-Heap (`MinHeap<T, Compare>`)**
-   - *Design:* Hand-written binary min-heap supporting `push`, `pop`, `top`, `size`, `empty`, and `decreaseKey`. Fully template-based with custom comparator support.
-   - *Why:* Essential for greedy shortest-path algorithms. Hand-implementing the sift-up / sift-down array logic demonstrates mastery of heap invariants without wrapping `std::priority_queue`.
-3. **Hash Map Wrapper**
-   - *Design:* Uses `std::unordered_map<int, int>` to map external user node IDs to internal contiguous vector indices.
-   - *Why:* Provides `O(1)` average-time lookup, enabling instant node mapping during graph traversal and CSV parsing.
-4. **Parent-Pointer Array**
-   - *Design:* An array/vector storing predecessor indices (`parent[u] = v`).
-   - *Why:* Lightweight `O(V)` space structure that allows fast `O(PathLength)` reconstruction of the final path by backtracking from destination to source.
 
-## 📊 Algorithm Complexity Analysis
-| Algorithm | Time Complexity | Space Complexity | Optimal? | Key Characteristic |
+| Data Structure | Implementation File | Design & Time Complexity | Real-World Analogy & Purpose |
+| :--- | :--- | :--- | :--- |
+| **Graph (Adjacency List)** | `src/core/Graph.h` | `std::vector<std::vector<Edge>>` + Hash Map ID lookup. $O(1)$ edge/node access, $O(V+E)$ space. | Address book / Switchboard. Stores only existing roads, avoiding matrix memory waste. |
+| **Binary Min-Heap** | `src/core/MinHeap.h` | Custom template heap backed by `std::vector`. $O(\log n)$ push/pop, $O(1)$ top. | Hospital Emergency Room Triage. Always processes the closest tentative node first. |
+| **Disjoint Set (Union-Find)** | `src/algorithms/Kruskal.cpp` | Path compression & rank optimization. Near $O(1)$ find/unite. | Corporate Mergers. Detects and prevents cycles in Kruskal's MST algorithm. |
+| **Parent-Pointer Array** | `src/algorithms/` | `std::unordered_map<int, int> parent`. $O(V)$ space. | Breadcrumb Trail. Backtracks from destination to source to reconstruct paths. |
+
+---
+
+## 📊 Algorithm Complexity Summary
+
+| Algorithm | Time Complexity | Space Complexity | Optimality | Key Characteristic |
 | :--- | :--- | :--- | :--- | :--- |
-| **Dijkstra's Algorithm** | `O((V + E) log V)` | `O(V)` | Yes | Explores uniformly by distance |
-| **A* Search** | `O((V + E) log V)` worst | `O(V)` | Yes (admissible) | Uses Euclidean heuristic to goal |
-| **Breadth-First Search** | `O(V + E)` | `O(V)` | No (edge count) | Explores level-by-level (unweighted) |
+| **Dijkstra's Algorithm** | $O((V + E) \log V)$ | $O(V)$ | Optimal | Explores uniformly by edge weight |
+| **A* Search** | $O((V + E) \log V)$ worst | $O(V)$ | Optimal (admissible) | Uses Euclidean heuristic to bias search towards goal |
+| **Breadth-First Search** | $O(V + E)$ | $O(V)$ | Unweighted only | Explores level-by-level |
+| **Kruskal's MST** | $O(E \log E)$ | $O(V + E)$ | Optimal | Greedy edge sorting with Union-Find cycle check |
+| **Greedy TSP Tour** | $O(V^2)$ | $O(V)$ | Heuristic | Nearest-neighbor tour construction |
 
-## 🗂️ Architecture Overview
+---
+
+## 🗂️ Project Architecture
+
 ```text
 RouteX/
 ├── CMakeLists.txt
 ├── main.cpp
+├── VIVA_CHEATSHEET.md          # Complete viva preparation guide
 ├── assets/
 │   └── font.ttf
 ├── src/
@@ -60,7 +65,8 @@ RouteX/
 │   │   ├── PathResult.h
 │   │   ├── Dijkstra.h / .cpp
 │   │   ├── AStar.h / .cpp
-│   │   └── BFS.h / .cpp
+│   │   ├── BFS.h / .cpp
+│   │   └── Kruskal.h / .cpp
 │   ├── ui/
 │   │   ├── Visualizer.h / .cpp
 │   │   ├── Animator.h / .cpp
@@ -74,5 +80,33 @@ RouteX/
 │   ├── edges_time.csv
 │   └── edges_cost.csv
 └── docs/
-    ├── VIVA_QA.md
-    └── SCREENSHOTS.md
+    └── VIVA_QA.md
+```
+
+---
+
+## 🚀 Getting Started & Controls
+
+### Build & Run
+```powershell
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+cd Release
+.\RouteX.exe
+```
+
+### Controls Reference
+- **Left Click Node**: Select Source (Green) or Destination (Crimson).
+- **`Shift + Click` Node**: Add / remove intermediate Waypoints (Blue).
+- **`Ctrl + Click` Edge**: Toggle a Roadblock (Red-Orange) with instant re-routing.
+- **`ENTER`**: Run active algorithm and comparison suite.
+- **`1`, `2`, `3`**: Switch active algorithm (Dijkstra, A*, BFS).
+- **`T`**: Cycle weight metrics (Distance $\rightarrow$ Time $\rightarrow$ Cost).
+- **`P`**: Compute & visualize Greedy TSP tour.
+- **`M`**: Reveal Kruskal's Minimum Spanning Tree.
+- **`SPACE`**: Step-by-step animation mode.
+- **`R`**: Reset selection & view.
+- **`WASD` / Middle-Mouse Drag / Scroll Wheel**: Pan and Zoom.
+- **`ESC`**: Exit application.
