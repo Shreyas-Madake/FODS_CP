@@ -22,6 +22,7 @@ public:
     void setDestination(const std::string& name);
     void setResult(const PathResult& result);
     void setComparisonResults(const std::array<PathResult, 3>& results);
+    void clearResults();
     void setActiveAlgorithm(int index); // 0=Dijkstra, 1=A*, 2=BFS
     void setStepMode(bool on);
     void setWeightType(WeightType type);

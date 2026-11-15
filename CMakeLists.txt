@@ -22,6 +22,7 @@ set(SOURCES
     src/algorithms/Dijkstra.cpp
     src/algorithms/AStar.cpp
     src/algorithms/BFS.cpp
+    src/algorithms/Kruskal.cpp
     src/ui/Visualizer.cpp
     src/ui/InfoPanel.cpp
     src/ui/Animator.cpp

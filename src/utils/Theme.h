@@ -39,6 +39,8 @@ namespace Theme {
     inline const sf::Color kEdgeDefault(74, 85, 104);       // #4A5568
     inline const sf::Color kEdgePath(231, 76, 60);          // #E74C3C (thick red)
     inline const sf::Color kEdgePathGlow(255, 107, 107, 100); // Translucent glow
+    inline const sf::Color kMstEdge(46, 204, 113);            // #2ECC71
+    inline const sf::Color kMstEdgeGlow(46, 204, 113, 90);
 
     inline const sf::Color ColorEdgeDefault = kEdgeDefault;
     inline const sf::Color ColorEdgePath = kEdgePath;

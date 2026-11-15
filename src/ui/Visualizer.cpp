@@ -131,11 +131,15 @@ void Visualizer::handleEvents() {
             else if (event.key.code == sf::Keyboard::C) {
                 m_animator.reset();
                 m_hasResult = false;
+                resetMst();
             }
             else if (event.key.code == sf::Keyboard::T) {
                 // Cycle weight types: Distance -> Time -> Cost -> Distance
                 int nextType = (static_cast<int>(m_currentWeightType) + 1) % 3;
                 switchWeightType(static_cast<WeightType>(nextType));
+            }
+            else if (event.key.code == sf::Keyboard::M) {
+                runMst();
             }
             // Pan with WASD
             else if (event.key.code == sf::Keyboard::W) m_graphView.move(0.f, -20.f * m_zoom);
@@ -216,8 +220,16 @@ void Visualizer::handleEvents() {
 
 void Visualizer::update(float deltaTime) {
     m_animator.update(deltaTime);
-    auto animState = m_animator.getState();
     m_infoPanel.setLiveStats(m_animator.getNodesExploredSoFar(), 0);
+
+    if (m_mstMode && m_mstVisibleEdges < m_mstEdges.size()) {
+        m_mstRevealTimer += deltaTime;
+        constexpr float revealInterval = 0.35f;
+        while (m_mstRevealTimer >= revealInterval && m_mstVisibleEdges < m_mstEdges.size()) {
+            m_mstRevealTimer -= revealInterval;
+            ++m_mstVisibleEdges;
+        }
+    }
 }
 
 void Visualizer::render() {
@@ -245,6 +257,29 @@ void Visualizer::render() {
 }
 
 void Visualizer::drawEdges() {
+    if (m_mstMode) {
+        for (std::size_t i = 0; i < m_mstVisibleEdges; ++i) {
+            const auto [uId, vId] = m_mstEdges[i];
+            const auto& uNode = m_graph.getNode(uId);
+            const auto& vNode = m_graph.getNode(vId);
+
+            sf::VertexArray glowLine(sf::Lines, 2);
+            glowLine[0].position = sf::Vector2f(static_cast<float>(uNode.x), static_cast<float>(uNode.y));
+            glowLine[1].position = sf::Vector2f(static_cast<float>(vNode.x), static_cast<float>(vNode.y));
+            glowLine[0].color = Theme::kMstEdgeGlow;
+            glowLine[1].color = Theme::kMstEdgeGlow;
+            m_window.draw(glowLine);
+
+            sf::VertexArray line(sf::Lines, 2);
+            line[0] = glowLine[0];
+            line[1] = glowLine[1];
+            line[0].color = Theme::kMstEdge;
+            line[1].color = Theme::kMstEdge;
+            m_window.draw(line);
+        }
+        return;
+    }
+
     auto animState = m_animator.getState();
     auto allIds = m_graph.getAllNodeIds();
 
@@ -402,7 +437,13 @@ void Visualizer::drawHintText() {
 
     sf::Text hint;
     hint.setFont(m_font);
-    hint.setString("Click a node to set SOURCE");
+    if (m_mstMode) {
+        hint.setString("Kruskal MST: " + std::to_string(m_mstEdges.size()) +
+                       " edges, total " + std::to_string(m_mstTotalWeight) +
+                       (m_mstComponents > 1 ? " (forest)" : ""));
+    } else {
+        hint.setString("Click a node to set SOURCE");
+    }
     hint.setCharacterSize(16);
     hint.setScale(m_zoom, m_zoom);
     hint.setFillColor(Theme::kTextMuted);
@@ -462,8 +503,20 @@ void Visualizer::runAllAlgorithms() {
 }
 
 void Visualizer::switchWeightType(WeightType newType) {
+    const bool rerunRoute = m_selectionState == 2;
+    const bool rerunMst = m_mstMode;
+
     m_currentWeightType = newType;
     m_infoPanel.setWeightType(newType);
+
+    // Never show a result calculated with a different metric under the new
+    // metric's label. Clear it immediately, then optionally calculate again.
+    m_currentResult = PathResult{};
+    m_comparisonResults = {};
+    m_hasResult = false;
+    m_hasComparison = false;
+    m_animator.reset();
+    m_infoPanel.clearResults();
 
     int key = static_cast<int>(newType);
     if (m_weightFiles.find(key) != m_weightFiles.end()) {
@@ -480,12 +533,41 @@ void Visualizer::switchWeightType(WeightType newType) {
         parser.loadEdges(filepath, newGraph);
         m_graph = newGraph;
 
-        // Re-run if selection active
-        if (m_selectionState == 2) {
+        // Re-run the active visualization using the new metric.
+        if (rerunMst) {
+            runMst();
+        } else if (rerunRoute) {
             runAlgorithm(m_activeAlgorithm);
             runAllAlgorithms();
         }
     }
+}
+
+void Visualizer::runMst() {
+    const algorithms::MstResult result = algorithms::kruskalMst(m_graph);
+
+    m_mstMode = true;
+    m_mstEdges = result.edges;
+    m_mstTotalWeight = result.totalWeight;
+    m_mstComponents = result.components;
+    m_mstVisibleEdges = 0;
+    m_mstRevealTimer = 0.0f;
+
+    m_sourceId = -1;
+    m_destId = -1;
+    m_selectionState = 0;
+    m_animator.reset();
+    m_hasResult = false;
+    m_hasComparison = false;
+}
+
+void Visualizer::resetMst() {
+    m_mstMode = false;
+    m_mstEdges.clear();
+    m_mstTotalWeight = 0;
+    m_mstComponents = 0;
+    m_mstVisibleEdges = 0;
+    m_mstRevealTimer = 0.0f;
 }
 
 void Visualizer::resetSelection() {
@@ -496,6 +578,7 @@ void Visualizer::resetSelection() {
     m_infoPanel.setDestination("-");
     m_animator.reset();
     m_hasResult = false;
+    resetMst();
 }
 
 void Visualizer::resetAll() {

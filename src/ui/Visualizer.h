@@ -5,6 +5,7 @@
 #include "../algorithms/PathResult.h"
 #include "InfoPanel.h"
 #include "Animator.h"
+#include "../algorithms/Kruskal.h"
 #include <array>
 #include <string>
 #include <unordered_map>
@@ -41,6 +42,13 @@ private:
     bool m_hasResult = false;
     bool m_hasComparison = false;
 
+    bool m_mstMode = false;
+    std::vector<std::pair<int, int>> m_mstEdges;
+    long long m_mstTotalWeight = 0;
+    int m_mstComponents = 0;
+    std::size_t m_mstVisibleEdges = 0;
+    float m_mstRevealTimer = 0.0f;
+
     InfoPanel m_infoPanel;
     Animator m_animator;
 
@@ -58,6 +66,8 @@ private:
     void switchWeightType(WeightType newType);
     void resetSelection();
     void resetAll();
+    void runMst();
+    void resetMst();
 
     void drawEdges();
     void drawNodes();

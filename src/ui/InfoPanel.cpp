@@ -23,6 +23,12 @@ void InfoPanel::setComparisonResults(const std::array<PathResult, 3>& results) {
     m_comparisonResults = results;
     m_hasComparison = true;
 }
+void InfoPanel::clearResults() {
+    m_currentResult = PathResult{};
+    m_comparisonResults = {};
+    m_hasResult = false;
+    m_hasComparison = false;
+}
 void InfoPanel::setActiveAlgorithm(int index) { m_activeAlgorithm = index; }
 void InfoPanel::setStepMode(bool on) { m_stepMode = on; }
 void InfoPanel::setWeightType(WeightType type) { m_weightType = type; }
@@ -147,7 +153,7 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     y += 105.0f;
 
     // 6. Weight Type & Controls
-    sf::RectangleShape sec5(sf::Vector2f(m_panelWidth - 30.0f, 130.0f));
+    sf::RectangleShape sec5(sf::Vector2f(m_panelWidth - 30.0f, 150.0f));
     sec5.setPosition(x, y);
     sec5.setFillColor(Theme::ColorSectionBg);
     window.draw(sec5);
@@ -162,6 +168,8 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     window.draw(makeText("[R] Reset All   [C] Clear Anim", Theme::FontSizeSmall, Theme::ColorTextWhite, x + 10, innerY));
     innerY += 18.0f;
     window.draw(makeText("[W/A/S/D/Scroll] Pan & Zoom", Theme::FontSizeSmall, Theme::ColorTextWhite, x + 10, innerY));
+    innerY += 18.0f;
+    window.draw(makeText("[M] Show Kruskal MST", Theme::FontSizeSmall, Theme::ColorTextActive, x + 10, innerY));
 }
 
 } // namespace ui
