@@ -33,9 +33,15 @@ private:
 
     int m_sourceId = -1;
     int m_destId = -1;
+    std::vector<int> m_waypoints;
+    bool m_tspActive = false;
+    PathResult m_tspResult;
     int m_selectionState = 0; // 0=none, 1=source selected, 2=both selected
     int m_activeAlgorithm = 0; // 0=Dijkstra, 1=A*, 2=BFS
     int m_hoveredNode = -1;
+
+    // Roadblocks
+    std::pair<int, int> m_hoveredEdge = {-1, -1};
 
     PathResult m_currentResult;
     std::array<PathResult, 3> m_comparisonResults;
@@ -63,6 +69,8 @@ private:
 
     void runAlgorithm(int algorithmIndex);
     void runAllAlgorithms();
+    void runWaypointRoute(int algorithmIndex);
+    void runTsp();
     void switchWeightType(WeightType newType);
     void resetSelection();
     void resetAll();
@@ -75,6 +83,7 @@ private:
     void drawHintText();
 
     int getNodeAtPosition(sf::Vector2f worldPos) const;
+    std::pair<int, int> getEdgeAtPosition(sf::Vector2f worldPos) const;
     sf::Vector2f screenToWorld(sf::Vector2i screenPos) const;
     void autoFitView();
 };

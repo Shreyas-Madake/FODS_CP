@@ -75,6 +75,8 @@ PathResult AStar::findPath(const core::Graph& graph, int sourceId, int destId) {
         }
 
         for (const auto& edge : graph.getNeighbors(u)) {
+            if (edge.blocked) continue; // Roadblocks
+
             int v = edge.target;
             long long weight = edge.weight;
 

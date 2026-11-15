@@ -62,6 +62,8 @@ PathResult Dijkstra::findPath(const core::Graph& graph, int sourceId, int destId
 
         // Relaxation
         for (const auto& edge : graph.getNeighbors(u)) {
+            if (edge.blocked) continue; // Skip blocked edges (Roadblocks)
+
             int v = edge.target;
             long long weight = edge.weight;
 

@@ -5,6 +5,7 @@
 #include "../algorithms/Dijkstra.h"
 #include "../algorithms/AStar.h"
 #include "../algorithms/BFS.h"
+#include "../utils/Timer.h"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -141,6 +142,9 @@ void Visualizer::handleEvents() {
             else if (event.key.code == sf::Keyboard::M) {
                 runMst();
             }
+            else if (event.key.code == sf::Keyboard::P) {
+                runTsp();
+            }
             // Pan with WASD
             else if (event.key.code == sf::Keyboard::W) m_graphView.move(0.f, -20.f * m_zoom);
             else if (event.key.code == sf::Keyboard::S) m_graphView.move(0.f, 20.f * m_zoom);
@@ -149,27 +153,64 @@ void Visualizer::handleEvents() {
         }
         else if (event.type == sf::Event::MouseButtonPressed) {
             if (event.mouseButton.button == sf::Mouse::Left) {
-                // Check if click is inside graph area (x < WindowWidth - PanelWidth)
+                // Check if click is inside graph area
                 if (event.mouseButton.x < Theme::WindowWidth - Theme::PanelWidth) {
                     sf::Vector2f worldPos = screenToWorld(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                    int clickedNode = getNodeAtPosition(worldPos);
 
-                    if (clickedNode != -1) {
-                        if (m_selectionState == 0 || m_selectionState == 2) {
-                            m_sourceId = clickedNode;
-                            m_destId = -1;
-                            m_selectionState = 1;
-                            m_infoPanel.setSource(m_graph.getNode(m_sourceId).name);
-                            m_infoPanel.setDestination("-");
-                            m_animator.reset();
-                            m_hasResult = false;
-                        } else if (m_selectionState == 1) {
-                            if (clickedNode != m_sourceId) {
-                                m_destId = clickedNode;
-                                m_selectionState = 2;
-                                m_infoPanel.setDestination(m_graph.getNode(m_destId).name);
+                    // Check for Roadblock toggle (Ctrl + Left Click on Edge)
+                    if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) || sf::Keyboard::isKeyPressed(sf::Keyboard::RControl)) {
+                        auto clickedEdge = getEdgeAtPosition(worldPos);
+                        if (clickedEdge.first != -1) {
+                            m_graph.toggleEdgeBlock(clickedEdge.first, clickedEdge.second);
+                            std::cout << "[INFO] Toggled roadblock on edge " << clickedEdge.first << " <-> " << clickedEdge.second << std::endl;
+                            // Re-run path if active
+                            if (m_selectionState == 2) {
                                 runAlgorithm(m_activeAlgorithm);
                                 runAllAlgorithms();
+                            }
+                        }
+                    } else {
+                        // Standard node selection or Shift+Click Waypoint
+                        int clickedNode = getNodeAtPosition(worldPos);
+                        if (clickedNode != -1) {
+                            bool isShift = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
+                            if (isShift) {
+                                if (clickedNode != m_sourceId && clickedNode != m_destId) {
+                                    // Toggle waypoint
+                                    auto it = std::find(m_waypoints.begin(), m_waypoints.end(), clickedNode);
+                                    if (it != m_waypoints.end()) {
+                                        m_waypoints.erase(it);
+                                    } else {
+                                        m_waypoints.push_back(clickedNode);
+                                    }
+                                    std::vector<std::string> wpNames;
+                                    for (int wId : m_waypoints) wpNames.push_back(m_graph.getNode(wId).name);
+                                    m_infoPanel.setWaypoints(wpNames);
+
+                                    if (m_selectionState == 2) {
+                                        runAlgorithm(m_activeAlgorithm);
+                                    }
+                                }
+                            } else {
+                                if (m_selectionState == 0 || m_selectionState == 2) {
+                                    m_sourceId = clickedNode;
+                                    m_destId = -1;
+                                    m_waypoints.clear();
+                                    m_infoPanel.setWaypoints({});
+                                    m_selectionState = 1;
+                                    m_infoPanel.setSource(m_graph.getNode(m_sourceId).name);
+                                    m_infoPanel.setDestination("-");
+                                    m_animator.reset();
+                                    m_hasResult = false;
+                                } else if (m_selectionState == 1) {
+                                    if (clickedNode != m_sourceId) {
+                                        m_destId = clickedNode;
+                                        m_selectionState = 2;
+                                        m_infoPanel.setDestination(m_graph.getNode(m_destId).name);
+                                        runAlgorithm(m_activeAlgorithm);
+                                        runAllAlgorithms();
+                                    }
+                                }
                             }
                         }
                     }
@@ -199,8 +240,10 @@ void Visualizer::handleEvents() {
                 if (event.mouseMove.x < Theme::WindowWidth - Theme::PanelWidth) {
                     sf::Vector2f worldPos = screenToWorld(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
                     m_hoveredNode = getNodeAtPosition(worldPos);
+                    m_hoveredEdge = getEdgeAtPosition(worldPos);
                 } else {
                     m_hoveredNode = -1;
+                    m_hoveredEdge = {-1, -1};
                 }
             }
         }
@@ -304,8 +347,17 @@ void Visualizer::drawEdges() {
 
             std::string edgeKey = std::to_string(uId) + "," + std::to_string(vId);
             bool isPath = pathEdgeMap[edgeKey];
+            bool isBlocked = edge.blocked;
+            bool isHoveredEdge = (m_hoveredEdge.first == uId && m_hoveredEdge.second == vId) ||
+                                 (m_hoveredEdge.first == vId && m_hoveredEdge.second == uId);
 
-            if (isPath) {
+            if (isBlocked) {
+                sf::VertexArray blockLine(sf::Lines, 2);
+                blockLine[0] = line[0]; blockLine[1] = line[1];
+                blockLine[0].color = sf::Color(255, 69, 0, 220);
+                blockLine[1].color = sf::Color(255, 69, 0, 220);
+                m_window.draw(blockLine);
+            } else if (isPath) {
                 // Draw glowing thick red line
                 sf::VertexArray glowLine(sf::Lines, 2);
                 glowLine[0] = line[0]; glowLine[1] = line[1];
@@ -317,8 +369,8 @@ void Visualizer::drawEdges() {
                 line[1].color = Theme::kEdgePath;
                 m_window.draw(line);
             } else {
-                line[0].color = Theme::kEdgeDefault;
-                line[1].color = Theme::kEdgeDefault;
+                line[0].color = isHoveredEdge ? sf::Color(255, 255, 255, 200) : Theme::kEdgeDefault;
+                line[1].color = isHoveredEdge ? sf::Color(255, 255, 255, 200) : Theme::kEdgeDefault;
                 m_window.draw(line);
             }
 
@@ -326,10 +378,10 @@ void Visualizer::drawEdges() {
             if (m_font.getInfo().family != "") {
                 sf::Text weightText;
                 weightText.setFont(m_font);
-                weightText.setString(std::to_string(edge.weight));
+                weightText.setString(std::to_string(edge.weight) + (edge.blocked ? " [BLOCKED]" : ""));
                 weightText.setCharacterSize(10);
                 weightText.setScale(m_zoom, m_zoom);
-                weightText.setFillColor(Theme::kTextMuted);
+                weightText.setFillColor(edge.blocked ? sf::Color(255, 69, 0) : Theme::kTextMuted);
                 weightText.setPosition(static_cast<float>((uNode.x + vNode.x) / 2.0),
                                        static_cast<float>((uNode.y + vNode.y) / 2.0));
                 m_window.draw(weightText);
@@ -356,10 +408,14 @@ void Visualizer::drawNodes() {
 
         sf::Color fillColor = Theme::kNodeDefault;
 
+        bool isWaypoint = std::find(m_waypoints.begin(), m_waypoints.end(), id) != m_waypoints.end();
+
         if (id == m_sourceId) {
             fillColor = Theme::kNodeSource;
         } else if (id == m_destId) {
             fillColor = Theme::kNodeDest;
+        } else if (isWaypoint) {
+            fillColor = Theme::kNodeWaypoint;
         } else if (id == animState.currentNodeId) {
             fillColor = Theme::kNodeVisiting;
         } else if (visitedMap[id]) {
@@ -454,6 +510,38 @@ void Visualizer::drawHintText() {
     m_window.draw(hint);
 }
 
+std::pair<int, int> Visualizer::getEdgeAtPosition(sf::Vector2f worldPos) const {
+    auto allIds = m_graph.getAllNodeIds();
+    for (int uId : allIds) {
+        const auto& uNode = m_graph.getNode(uId);
+        for (const auto& edge : m_graph.getNeighbors(uId)) {
+            int vId = edge.target;
+            if (uId > vId) continue;
+            const auto& vNode = m_graph.getNode(vId);
+
+            // Distance from point to line segment (uNode -> vNode)
+            double x1 = uNode.x, y1 = uNode.y;
+            double x2 = vNode.x, y2 = vNode.y;
+            double px = worldPos.x, py = worldPos.y;
+
+            double l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+            if (l2 == 0.0) continue;
+
+            double t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+            t = std::max(0.0, std::min(1.0, t));
+
+            double projX = x1 + t * (x2 - x1);
+            double projY = y1 + t * (y2 - y1);
+
+            double dist = std::sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
+            if (dist <= 6.0f * m_zoom) {
+                return {uId, vId};
+            }
+        }
+    }
+    return {-1, -1};
+}
+
 int Visualizer::getNodeAtPosition(sf::Vector2f worldPos) const {
     auto ids = m_graph.getAllNodeIds();
     for (int id : ids) {
@@ -474,6 +562,10 @@ sf::Vector2f Visualizer::screenToWorld(sf::Vector2i screenPos) const {
 
 void Visualizer::runAlgorithm(int algorithmIndex) {
     if (m_selectionState != 2) return;
+    if (!m_waypoints.empty()) {
+        runWaypointRoute(algorithmIndex);
+        return;
+    }
 
     PathResult res;
     if (algorithmIndex == 0) {
@@ -488,6 +580,158 @@ void Visualizer::runAlgorithm(int algorithmIndex) {
     m_hasResult = true;
     m_infoPanel.setResult(res);
     m_animator.startExploration(res, m_graph);
+}
+
+void Visualizer::runWaypointRoute(int algorithmIndex) {
+    std::vector<int> stops;
+    stops.push_back(m_sourceId);
+    for (int wp : m_waypoints) stops.push_back(wp);
+    stops.push_back(m_destId);
+
+    PathResult combined;
+    combined.algorithmName = (algorithmIndex == 0 ? "Dijkstra" : algorithmIndex == 1 ? "A*" : "BFS") + std::string(" (Waypoints)");
+    combined.found = true;
+    combined.totalDistance = 0;
+    combined.nodesExplored = 0;
+    long long totalTimeMs = 0;
+
+    std::vector<int> fullPath;
+    std::vector<int> fullExploration;
+
+    for (size_t i = 0; i < stops.size() - 1; ++i) {
+        int u = stops[i];
+        int v = stops[i + 1];
+        PathResult subRes;
+        if (algorithmIndex == 0) subRes = Dijkstra::findPath(m_graph, u, v);
+        else if (algorithmIndex == 1) subRes = AStar::findPath(m_graph, u, v);
+        else subRes = BFS::findPath(m_graph, u, v);
+
+        if (!subRes.found) {
+            combined.found = false;
+            break;
+        }
+
+        combined.totalDistance += subRes.totalDistance;
+        combined.nodesExplored += subRes.nodesExplored;
+        totalTimeMs += subRes.executionTimeMs;
+
+        // Append path (avoid duplicating connection nodes)
+        if (i == 0) {
+            for (int nId : subRes.path) fullPath.push_back(nId);
+        } else {
+            for (size_t k = 1; k < subRes.path.size(); ++k) {
+                fullPath.push_back(subRes.path[k]);
+            }
+        }
+
+        for (int nId : subRes.explorationOrder) {
+            fullExploration.push_back(nId);
+        }
+    }
+
+    combined.path = fullPath;
+    combined.explorationOrder = fullExploration;
+    combined.executionTimeMs = totalTimeMs;
+
+    m_currentResult = combined;
+    m_hasResult = true;
+    m_infoPanel.setResult(combined);
+    m_animator.startExploration(combined, m_graph);
+}
+
+void Visualizer::runTsp() {
+    if (m_sourceId == -1) return;
+
+    Timer timer;
+    auto allIds = m_graph.getAllNodeIds();
+    std::unordered_map<int, bool> visited;
+    for (int id : allIds) visited[id] = false;
+
+    std::vector<int> tour;
+    int curr = m_sourceId;
+    visited[curr] = true;
+    tour.push_back(curr);
+
+    long long totalTourDist = 0;
+    bool complete = true;
+
+    for (size_t step = 1; step < allIds.size(); ++step) {
+        int nextNode = -1;
+        long long minDist = LLONG_MAX;
+
+        for (const auto& edge : m_graph.getNeighbors(curr)) {
+            int neighbor = edge.target;
+            if (!visited[neighbor] && edge.weight < minDist) {
+                // Verify we can reach it via Dijkstra/direct
+                auto pRes = Dijkstra::findPath(m_graph, curr, neighbor);
+                if (pRes.found && pRes.totalDistance < minDist) {
+                    minDist = pRes.totalDistance;
+                    nextNode = neighbor;
+                }
+            }
+        }
+
+        if (nextNode == -1) {
+            // Fallback: pick any unvisited node with Dijkstra shortest path
+            for (int id : allIds) {
+                if (!visited[id]) {
+                    auto pRes = Dijkstra::findPath(m_graph, curr, id);
+                    if (pRes.found && pRes.totalDistance < minDist) {
+                        minDist = pRes.totalDistance;
+                        nextNode = id;
+                    }
+                }
+            }
+        }
+
+        if (nextNode != -1) {
+            auto pRes = Dijkstra::findPath(m_graph, curr, nextNode);
+            totalTourDist += pRes.totalDistance;
+            visited[nextNode] = true;
+            curr = nextNode;
+            tour.push_back(curr);
+        } else {
+            complete = false;
+            break;
+        }
+    }
+
+    // Return to start
+    if (complete) {
+        auto returnRes = Dijkstra::findPath(m_graph, curr, m_sourceId);
+        totalTourDist += returnRes.totalDistance;
+        tour.push_back(m_sourceId);
+    }
+
+    PathResult tspRes;
+    tspRes.algorithmName = "TSP (Greedy Heuristic)";
+    tspRes.found = complete;
+    tspRes.totalDistance = totalTourDist;
+    tspRes.executionTimeMs = timer.elapsedMs();
+
+    // Expand tour into full edge path
+    std::vector<int> fullPath;
+    for (size_t i = 0; i < tour.size() - 1; ++i) {
+        auto subRes = Dijkstra::findPath(m_graph, tour[i], tour[i + 1]);
+        if (i == 0) {
+            for (int n : subRes.path) fullPath.push_back(n);
+        } else {
+            for (size_t k = 1; k < subRes.path.size(); ++k) {
+                fullPath.push_back(subRes.path[k]);
+            }
+        }
+    }
+    tspRes.path = fullPath;
+    tspRes.nodesExplored = static_cast<int>(allIds.size());
+
+    m_currentResult = tspRes;
+    m_hasResult = true;
+    m_tspActive = true;
+    m_tspResult = tspRes;
+    m_infoPanel.setResult(tspRes);
+    m_animator.startExploration(tspRes, m_graph);
+
+    std::cout << "[INFO] Greedy TSP completed: distance = " << totalTourDist << std::endl;
 }
 
 void Visualizer::runAllAlgorithms() {

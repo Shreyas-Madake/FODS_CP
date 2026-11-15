@@ -63,6 +63,41 @@ int Graph::edgeCount() const {
     return m_edgeCount;
 }
 
+bool Graph::toggleEdgeBlock(int uId, int vId) {
+    if (!hasNode(uId) || !hasNode(vId)) return false;
+    int uIdx = m_idToIndex[uId];
+    bool toggled = false;
+    // Check u -> v
+    for (auto& edge : m_adjList[uIdx]) {
+        if (edge.target == vId) {
+            edge.blocked = !edge.blocked;
+            toggled = true;
+        }
+    }
+    // Also check v -> u if graph is undirected (common in your project)
+    int vIdx = m_idToIndex[vId];
+    for (auto& edge : m_adjList[vIdx]) {
+        if (edge.target == uId) {
+            edge.blocked = !edge.blocked; // Sync both directions
+            toggled = true;
+        }
+    }
+    return toggled;
+}
+
+bool Graph::isEdgeBlocked(int uId, int vId) const {
+    if (!hasNode(uId)) return false;
+    int uIdx = m_idToIndex.at(uId);
+    for (const auto& edge : m_adjList[uIdx]) {
+        if (edge.target == vId) return edge.blocked;
+    }
+    return false;
+}
+
+const std::vector<Edge>& Graph::getNeighborsRaw(int nodeId) const {
+    return getNeighbors(nodeId);
+}
+
 std::vector<int> Graph::getAllNodeIds() const {
     std::vector<int> ids;
     ids.reserve(m_nodes.size());

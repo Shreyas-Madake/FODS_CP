@@ -15,6 +15,7 @@ void InfoPanel::init(const sf::Font& font, float panelX, float panelWidth, float
 
 void InfoPanel::setSource(const std::string& name) { m_sourceName = name; }
 void InfoPanel::setDestination(const std::string& name) { m_destName = name; }
+void InfoPanel::setWaypoints(const std::vector<std::string>& waypointNames) { m_waypointNames = waypointNames; }
 void InfoPanel::setResult(const PathResult& result) {
     m_currentResult = result;
     m_hasResult = true;
@@ -80,7 +81,8 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     y += 35.0f;
 
     // 2. Selection Section
-    sf::RectangleShape sec1(sf::Vector2f(m_panelWidth - 30.0f, 70.0f));
+    float sec1Height = 70.0f + (m_waypointNames.empty() ? 0.0f : 25.0f + m_waypointNames.size() * 18.0f);
+    sf::RectangleShape sec1(sf::Vector2f(m_panelWidth - 30.0f, sec1Height));
     sec1.setPosition(x, y);
     sec1.setFillColor(Theme::ColorSectionBg);
     window.draw(sec1);
@@ -89,7 +91,16 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     window.draw(makeText("SOURCE      : " + m_sourceName, Theme::FontSizeBody, Theme::ColorNodeSource, x + 10, innerY));
     innerY += 22.0f;
     window.draw(makeText("DESTINATION : " + m_destName, Theme::FontSizeBody, Theme::ColorNodeDest, x + 10, innerY));
-    y += 85.0f;
+    innerY += 22.0f;
+    if (!m_waypointNames.empty()) {
+        window.draw(makeText("WAYPOINTS (" + std::to_string(m_waypointNames.size()) + ") :", Theme::FontSizeSmall, sf::Color(52, 152, 219), x + 10, innerY));
+        innerY += 18.0f;
+        for (const auto& wp : m_waypointNames) {
+            window.draw(makeText(" - " + wp, Theme::FontSizeSmall, Theme::ColorTextWhite, x + 15, innerY));
+            innerY += 16.0f;
+        }
+    }
+    y += sec1Height + 15.0f;
 
     // 3. Results Section
     sf::RectangleShape sec2(sf::Vector2f(m_panelWidth - 30.0f, 105.0f));
@@ -153,7 +164,7 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     y += 105.0f;
 
     // 6. Weight Type & Controls
-    sf::RectangleShape sec5(sf::Vector2f(m_panelWidth - 30.0f, 150.0f));
+    sf::RectangleShape sec5(sf::Vector2f(m_panelWidth - 30.0f, 170.0f));
     sec5.setPosition(x, y);
     sec5.setFillColor(Theme::ColorSectionBg);
     window.draw(sec5);
@@ -163,11 +174,13 @@ void InfoPanel::draw(sf::RenderWindow& window) {
     innerY += 22.0f;
     window.draw(makeText("[ENTER] Run Algorithm", Theme::FontSizeSmall, Theme::ColorTextWhite, x + 10, innerY));
     innerY += 18.0f;
+    window.draw(makeText("[Shift+Click] Add Waypoint", Theme::FontSizeSmall, sf::Color(52, 152, 219), x + 10, innerY));
+    innerY += 18.0f;
+    window.draw(makeText("[P] Greedy TSP Tour", Theme::FontSizeSmall, sf::Color(241, 196, 15), x + 10, innerY));
+    innerY += 18.0f;
     window.draw(makeText("[SPACE] Step Mode: " + std::string(m_stepMode ? "ON" : "OFF"), Theme::FontSizeSmall, Theme::ColorTextWhite, x + 10, innerY));
     innerY += 18.0f;
     window.draw(makeText("[R] Reset All   [C] Clear Anim", Theme::FontSizeSmall, Theme::ColorTextWhite, x + 10, innerY));
-    innerY += 18.0f;
-    window.draw(makeText("[W/A/S/D/Scroll] Pan & Zoom", Theme::FontSizeSmall, Theme::ColorTextWhite, x + 10, innerY));
     innerY += 18.0f;
     window.draw(makeText("[M] Show Kruskal MST", Theme::FontSizeSmall, Theme::ColorTextActive, x + 10, innerY));
 }

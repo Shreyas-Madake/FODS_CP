@@ -20,6 +20,7 @@ public:
 
     void setSource(const std::string& name);
     void setDestination(const std::string& name);
+    void setWaypoints(const std::vector<std::string>& waypointNames);
     void setResult(const PathResult& result);
     void setComparisonResults(const std::array<PathResult, 3>& results);
     void clearResults();
@@ -38,6 +39,7 @@ private:
 
     std::string m_sourceName = "-";
     std::string m_destName = "-";
+    std::vector<std::string> m_waypointNames;
     PathResult m_currentResult;
     std::array<PathResult, 3> m_comparisonResults;
     int m_activeAlgorithm = 0;

@@ -42,6 +42,10 @@ namespace Theme {
     inline const sf::Color kMstEdge(46, 204, 113);            // #2ECC71
     inline const sf::Color kMstEdgeGlow(46, 204, 113, 90);
 
+    // Roadblock & Waypoint
+    inline const sf::Color kEdgeBlocked(255, 69, 0, 180);      // Red-Orange
+    inline const sf::Color kNodeWaypoint(52, 152, 219);       // #3498DB (Peter River blue)
+
     inline const sf::Color ColorEdgeDefault = kEdgeDefault;
     inline const sf::Color ColorEdgePath = kEdgePath;
     inline const sf::Color ColorEdgePathGlow = kEdgePathGlow;

@@ -26,6 +26,7 @@ namespace core {
 struct Edge {
     int target;
     long long weight;
+    bool blocked = false; // Added for Roadblocks feature
 };
 
 struct Node {
@@ -85,6 +86,22 @@ public:
      */
     int edgeCount() const;
     int getEdgeCount() const { return edgeCount(); }
+
+    /**
+     * @brief Toggle the blocked state of an edge.
+     * @return true if edge was found and toggled.
+     */
+    bool toggleEdgeBlock(int uId, int vId);
+
+    /**
+     * @brief Check if a specific edge is blocked.
+     */
+    bool isEdgeBlocked(int uId, int vId) const;
+
+    /**
+     * @brief Get all outgoing neighbors including blocked ones (for visualization).
+     */
+    const std::vector<Edge>& getNeighborsRaw(int nodeId) const;
 
     /**
      * @brief Get all node IDs in the graph. Time: O(V).
