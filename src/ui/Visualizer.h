@@ -57,6 +57,7 @@ private:
 
     InfoPanel m_infoPanel;
     Animator m_animator;
+    float m_pulseTimer = 0.0f; // For glowing pulse animation on source/dest
 
     // Pan / Zoom
     float m_zoom = 1.0f;

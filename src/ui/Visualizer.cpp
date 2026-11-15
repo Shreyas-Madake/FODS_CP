@@ -264,6 +264,7 @@ void Visualizer::handleEvents() {
 void Visualizer::update(float deltaTime) {
     m_animator.update(deltaTime);
     m_infoPanel.setLiveStats(m_animator.getNodesExploredSoFar(), 0);
+    m_pulseTimer += deltaTime * 4.0f; // Pulsing speed
 
     if (m_mstMode && m_mstVisibleEdges < m_mstEdges.size()) {
         m_mstRevealTimer += deltaTime;
@@ -425,6 +426,18 @@ void Visualizer::drawNodes() {
         }
 
         circle.setFillColor(fillColor);
+
+        // Pulsing glow effect on Source and Destination nodes
+        if (id == m_sourceId || id == m_destId) {
+            float pulseFactor = 1.25f + 0.25f * std::sin(m_pulseTimer);
+            float pulseRadius = nodeRadius * pulseFactor;
+            sf::CircleShape pulseCircle(pulseRadius);
+            pulseCircle.setOrigin(pulseRadius, pulseRadius);
+            pulseCircle.setPosition(static_cast<float>(node.x), static_cast<float>(node.y));
+            sf::Color pulseColor = (id == m_sourceId) ? sf::Color(46, 204, 113, 80) : sf::Color(231, 76, 60, 80);
+            pulseCircle.setFillColor(pulseColor);
+            m_window.draw(pulseCircle);
+        }
 
         // Hover effect
         if (id == m_hoveredNode) {
